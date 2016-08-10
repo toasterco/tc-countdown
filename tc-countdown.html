@@ -1,0 +1,181 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+`tc-countdown`
+An element to track the amount of time until a given time has reached. 
+It exposes a set of properties to detect the amount of time left.
+
+Sample demo:
+
+    <tc-countdown 
+        target-date="2016-12-25" 
+        target-time="23:00:00" 
+        timezone-offset="+05:00"
+        time-remaining="{{remaining}}"></tc-countdown>
+
+    <p>{{remaining.days}}, {{remaining.hours}}, {{remaining.minutes}}</p>
+
+@element tc-countdown
+@demo demo/index.html
+-->
+
+<dom-module id="tc-countdown">
+  <template>
+    
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'tc-countdown',
+
+      properties: {
+        /** The date to countdown to. Format should be yyyy-mm-dd and should be 
+            UTC. This field is manditory. */
+        targetDate: {
+          type: String
+        },
+
+        /** The time to countdown to. Format should be 00:00:00 and should be 
+            UTC. If no value is provided, it will default to midnight 
+            (00:00:00). */
+        targetTime: {
+          type: String,
+          value: '00:00:00'
+        },
+
+        /** The timezone offset, relative to UTC. Formatted +|-hh:mm For
+            example, Singapore would be +08:00, LA would be -08:00. This should 
+            be used if the countdown is fixed to a timezone. */
+        timezoneOffset: {
+          type: String,
+          value: ''
+        },
+
+        /** The amount of time left until the date/time is reached. Returns an 
+            object with the following properties: 
+            - delta - The difference between the target date and now in ms,
+            - total - Same as delta, but is capped at 0,
+            - days,
+            - hours,
+            - minutes,
+            - seconds */
+        timeRemaining: {
+          type: Object,
+          notify: true,
+          readOnly: true
+        },
+
+        /** 
+         * The computed UTC deadline based on the date and timezone 
+         * offset.
+         * 
+         * @private 
+         */
+        _utcDeadline: {
+          type: Number,
+          computed: '_calculateEndDate(targetDate, targetTime, timezoneOffset)'
+        }
+      },
+
+      /**
+       * Cache the interval timer for future use.
+       * 
+       * @type {Number}
+       * @private
+       */
+      _countInterval: -1,
+
+      attached: function() {
+        this._setTimeRemaining(this._getTimeRemaining());
+        if (this._countInterval === -1 && this.timeRemaining.total > 0) {
+          this._countInterval = setInterval(function() {
+            if (this.timeRemaining.total <= 0) {
+              clearInterval(this._countInterval);
+              this._countInterval = -1;
+            }
+          }.bind(this), 1000);
+        }
+      },
+
+      /**
+       * Convert the end date to UTC time, then add the timezone offset,
+       * then return the UTC timestamp.
+       * 
+       * @param  {String} endDate The end date in this format: yyyy-mm-dd
+       * @param  {String} endTime The end time in this format: 00:00:00
+       * @param  {Number} timezoneOffset
+       * @return {Number} The UTC timestamp.
+       * @private
+       */
+      _calculateEndDate: function(endDate, endTime, timezoneOffset) {
+        endDate = this._checkDateFormatting(endDate);
+
+        return this._dateToUtcDate(
+          new Date(Date.parse(endDate + 'T' + endTime + timezoneOffset))
+        );
+      },
+
+      /**
+       * Checks the date to make sure the day and month are 2 digits and are 
+       * separeted by either - or /.
+       * 
+       * @param  {String} date The date string
+       * @return {String} A validated date string.
+       * @private
+       */
+      _checkDateFormatting: function(date) {
+        // Split the date by either - or /.
+        var dateBits = date.split(/-|\//);
+        if (dateBits[1].length === 1) {
+          dateBits[1] = '0' + dateBits[1];
+        }
+        if (dateBits[2].length === 1) {
+          dateBits[2] = '0' + dateBits[2];
+        }
+        return dateBits.join('-');
+      },
+
+      /**
+       * Get the time remaining to deadline.
+       * 
+       * @return {Object} An object with a timestamp, days, hours, minutes and 
+       * seconds.
+       * @private
+       */
+      _getTimeRemaining: function() {
+        var utcNow = this._dateToUtcDate(new Date());
+        var delta = this._utcDeadline - utcNow;
+        var t = Math.max(0, delta);
+        var seconds = Math.floor((t / 1000) % 60);
+        var minutes = Math.floor((t / 1000 / 60) % 60);
+
+        var hours = (t / (1000 * 60 * 60)) % 24;
+        hours = Math.floor(hours);
+
+        var days = Math.floor(t / (1000 * 60 * 60 * 24));
+
+        this._setTimeRemaining({
+          delta: delta,
+          total: t,
+          days: days < 10 ? '0' + days : '' + days,
+          hours: hours < 10 ? '0' + hours : '' + hours,
+          minutes: minutes < 10 ? '0' + minutes : '' + minutes,
+          seconds: seconds < 10 ? '0' + seconds : '' + seconds
+        });
+
+        return this.get('timeRemaining');
+      },
+
+      /**
+       * Convert date to UTC.
+       * 
+       * @param  {Date} date
+       * @return {Date}
+       */
+      _dateToUtcDate: function(date) {
+        return new Date(date.toISOString());
+      }
+    });
+  </script>
+</dom-module>

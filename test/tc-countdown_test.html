@@ -1,0 +1,118 @@
+<!doctype html>
+
+<html>
+  <head>
+    <title>tc-countdown test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=yes">
+    <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+    <script src="../../web-component-tester/browser.js"></script>
+    <script src="../../TimeShift-js/timeshift.js"></script>
+
+    <link rel="import" href="../tc-countdown.html">
+  </head>
+  <body>
+
+    <test-fixture id="basic">
+      <template>
+        <tc-countdown></tc-countdown>
+      </template>
+    </test-fixture>
+
+    <test-fixture id="past">
+      <template>
+        <tc-countdown target-date="2015-08-09"></tc-countdown>
+      </template>
+    </test-fixture>
+
+    <script>
+      suite('tc-countdown', function() {
+
+        test('instantiating the element works', function() {
+          var element = fixture('basic');
+          assert.equal(element.is, 'tc-countdown');
+        });
+
+        test('countdown interval should stop if the date is in the past', function() {
+          var element = fixture('past');
+
+          assert.equal(element._countInterval, -1);
+        });
+
+        test('countdown should check the date formatting', function() {
+          var element = fixture('basic');
+
+          var targetDate = '2016/6/5';
+
+          var validatedDate = element._checkDateFormatting(targetDate);
+
+          assert.equal(validatedDate, '2016-06-05');
+        });
+
+        test('countdown should report correct remaining time', function() {
+          var element = fixture('basic');
+          var numDaysInFuture = Math.round(Math.random() * 100);
+          element.targetDate = getFutureDate(numDaysInFuture).date;
+            
+          var remaining = element._getTimeRemaining();
+
+          var numDays = numDaysInFuture - 1;
+          numDays = numDays < 10 ? '0' + numDays : '' + numDays;
+
+          assert.equal(remaining.days, numDays);
+        });
+
+        test('countdown should take into account timezone offset', function() {
+          var element = fixture('basic');
+          var numDaysInFuture = Math.round(Math.random() * 100);
+          var timeDifference = getRandomInt(-8, 8);
+          //var timeDifference = 8;
+          var futureDate = getFutureDate(numDaysInFuture);
+
+          element.targetDate = futureDate.date;
+          element.targetTime = futureDate.time;
+
+          var remainingBeforeTZ = element._getTimeRemaining();
+
+          element.timezoneOffset = timeDifference < 0 ? 
+              '-0' + Math.abs(timeDifference) + ':00' : 
+              '+0' + timeDifference + ':00';
+
+          var remainingAfterTZ = element._getTimeRemaining();
+
+          var diff = remainingBeforeTZ.total - remainingAfterTZ.total;
+          var hoursDiff = Math.floor(diff / (60 * 60 * 1000));
+
+          assert.equal(hoursDiff, timeDifference);
+        });
+
+      });
+
+      function getFutureDate(numDays) {
+        var futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + numDays);
+
+        var dd = futureDate.getDate();
+        var mm = futureDate.getMonth() + 1;
+        var yyyy = futureDate.getFullYear();
+
+        var hh = futureDate.getHours();
+        hh = hh < 10 ? '0' + hh : hh;
+        var ss = futureDate.getSeconds();
+        ss = ss < 10 ? '0' + ss : ss;
+        var ms = '00';
+
+        return {
+          date: [yyyy, mm, dd].join('-'),
+          time: [hh, ss, ms].join(':'),
+          full: futureDate
+        };
+      }
+
+      function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+    </script>
+  </body>
+</html>
