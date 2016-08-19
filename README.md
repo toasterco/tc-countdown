@@ -1,6 +1,18 @@
-# \<tc-countdown\>
+# <tc-countdown\>
 
-An element to track the amount of time until a given time has reached. It exposes a set of properties to detect the amount of time left.
+### tc-countdown
+An element to track the amount of time until a given time has reached. 
+It exposes a set of properties to detect the amount of time left.
+
+Sample demo:
+
+    <tc-countdown 
+        target-date="2016-12-25" 
+        target-time="23:00:00" 
+        timezone-offset="+05:00"
+        time-remaining="{{remaining}}"></tc-countdown>
+
+    <p>{{remaining.days}}, {{remaining.hours}}, {{remaining.minutes}}</p>
 
 ## Install the Polymer-CLI
 
